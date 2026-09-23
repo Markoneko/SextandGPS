@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Test Position GPS</title>
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --card-bg: #ffffff;
+    --text: #1a1f2b;
+    --text-muted: #5b6472;
+    --accent: #1f4788;
+    --accent-dark: #163460;
+    --border: #dde2e8;
+    --ok: #2e7d32;
+    --ok-bg: #e8f5e9;
+    --err: #b3261e;
+    --err-bg: #fdecea;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b;
+      --card-bg: #1c212b;
+      --text: #eef1f5;
+      --text-muted: #9aa4b2;
+      --accent: #6f9ceb;
+      --accent-dark: #8fb2f0;
+      --border: #2c3340;
+      --ok: #7fd88a;
+      --ok-bg: #16301a;
+      --err: #ff8f87;
+      --err-bg: #3a1b19;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b;
+    --card-bg: #1c212b;
+    --text: #eef1f5;
+    --text-muted: #9aa4b2;
+    --accent: #6f9ceb;
+    --accent-dark: #8fb2f0;
+    --border: #2c3340;
+    --ok: #7fd88a;
+    --ok-bg: #16301a;
+    --err: #ff8f87;
+    --err-bg: #3a1b19;
+  }
+  html, body {
+    height: 100%;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 40px;
+  }
+  .wrap {
+    width: 100%;
+    max-width: 480px;
+  }
+  h1 {
+    font-size: 1.3rem;
+    margin: 8px 0 4px;
+    text-align: center;
+  }
+  p.sub {
+    color: var(--text-muted);
+    text-align: center;
+    margin: 0 0 24px;
+    font-size: 0.92rem;
+  }
+  button {
+    width: 100%;
+    padding: 16px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 14px;
+    background: var(--accent);
+    color: white;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+  }
+  button:active { opacity: 0.8; }
+  button:disabled { opacity: 0.5; cursor: default; }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 14px;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+  .toggle-row input { width: 18px; height: 18px; }
+
+  .card {
+    margin-top: 22px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px 20px;
+    display: none;
+  }
+  .card.show { display: block; }
+  .card.error {
+    background: var(--err-bg);
+    border-color: var(--err);
+  }
+  .card.error .row-label,
+  .card.error .row-value {
+    color: var(--err);
+  }
+
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+  .row:last-child { border-bottom: none; }
+  .row-label {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    flex-shrink: 0;
+  }
+  .row-value {
+    font-weight: 600;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    word-break: break-word;
+  }
+
+  .status {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    min-height: 1.2em;
+  }
+
+  .accuracy-badge {
+    display: inline-block;
+    margin-top: 14px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: var(--ok-bg);
+    color: var(--ok);
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-align: center;
+    width: 100%;
+  }
+
+  .footer-note {
+    margin-top: 28px;
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📍 Test position GPS</h1>
+  <p class="sub">Vérifie que ce navigateur peut accéder à la position du téléphone — avant de construire l'app de comparaison sextant.</p>
+
+  <button id="btn">Obtenir ma position</button>
+
+  <div class="toggle-row">
+    <input type="checkbox" id="watchToggle">
+    <label for="watchToggle">Suivi continu (watch)</label>
+  </div>
+
+  <div class="card" id="resultCard">
+    <div class="row"><span class="row-label">Latitude</span><span class="row-value" id="lat">—</span></div>
+    <div class="row"><span class="row-label">Longitude</span><span class="row-value" id="lon">—</span></div>
+    <div class="row"><span class="row-label">Précision</span><span class="row-value" id="acc">—</span></div>
+    <div class="row"><span class="row-label">Altitude</span><span class="row-value" id="alt">—</span></div>
+    <div class="row"><span class="row-label">Heure de la mesure</span><span class="row-value" id="time">—</span></div>
+    <div class="accuracy-badge" id="badge"></div>
+  </div>
+
+  <div class="card error" id="errorCard">
+    <div class="row"><span class="row-label">Erreur</span><span class="row-value" id="errMsg">—</span></div>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <div class="footer-note">
+    Cette page n'utilise que l'API de géolocalisation du navigateur. Rien n'est envoyé ni stocké ailleurs que sur votre écran.
+  </div>
+</div>
+
+<script>
+  const btn = document.getElementById('btn');
+  const watchToggle = document.getElementById('watchToggle');
+  const resultCard = document.getElementById('resultCard');
+  const errorCard = document.getElementById('errorCard');
+  const statusEl = document.getElementById('status');
+  const badge = document.getElementById('badge');
+
+  let watchId = null;
+
+  function fmt(n, digits) {
+    return (typeof n === 'number' && !isNaN(n)) ? n.toFixed(digits) : '—';
+  }
+
+  function showPosition(pos) {
+    const c = pos.coords;
+    errorCard.classList.remove('show');
+    resultCard.classList.add('show');
+
+    document.getElementById('lat').textContent = fmt(c.latitude, 6) + '°';
+    document.getElementById('lon').textContent = fmt(c.longitude, 6) + '°';
+    document.getElementById('acc').textContent = fmt(c.accuracy, 1) + ' m';
+    document.getElementById('alt').textContent = (c.altitude !== null) ? fmt(c.altitude, 1) + ' m' : 'non disponible';
+    document.getElementById('time').textContent = new Date(pos.timestamp).toLocaleTimeString('fr-FR');
+
+    if (c.accuracy <= 15) {
+      badge.textContent = '✓ Précision excellente pour un test de comparaison';
+      badge.style.background = 'var(--ok-bg)';
+      badge.style.color = 'var(--ok)';
+    } else if (c.accuracy <= 50) {
+      badge.textContent = '≈ Précision correcte';
+      badge.style.background = 'var(--ok-bg)';
+      badge.style.color = 'var(--ok)';
+    } else {
+      badge.textContent = '⚠ Précision faible — essayez en extérieur, ciel dégagé';
+      badge.style.background = 'var(--err-bg)';
+      badge.style.color = 'var(--err)';
+    }
+
+    statusEl.textContent = watchId !== null ? 'Suivi en cours…' : 'Position obtenue.';
+  }
+
+  function showError(err) {
+    resultCard.classList.remove('show');
+    errorCard.classList.add('show');
+
+    const messages = {
+      1: "Permission refusée. Autorisez la localisation pour ce site dans les réglages du navigateur.",
+      2: "Position indisponible. Vérifiez que le GPS/la localisation est activée sur le téléphone.",
+      3: "Délai dépassé. Réessayez, idéalement en extérieur."
+    };
+    document.getElementById('errMsg').textContent = messages[err.code] || err.message || 'Erreur inconnue.';
+    statusEl.textContent = '';
+  }
+
+  function requestOnce() {
+    if (!('geolocation' in navigator)) {
+      showError({ message: "La géolocalisation n'est pas supportée par ce navigateur." });
+      return;
+    }
+    statusEl.textContent = 'Localisation en cours…';
+    btn.disabled = true;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { btn.disabled = false; showPosition(pos); },
+      (err) => { btn.disabled = false; showError(err); },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  }
+
+  btn.addEventListener('click', requestOnce);
+
+  watchToggle.addEventListener('change', () => {
+    if (watchToggle.checked) {
+      if (!('geolocation' in navigator)) {
+        showError({ message: "La géolocalisation n'est pas supportée par ce navigateur." });
+        watchToggle.checked = false;
+        return;
+      }
+      statusEl.textContent = 'Démarrage du suivi…';
+      watchId = navigator.geolocation.watchPosition(
+        showPosition,
+        showError,
+        { enableHighAccuracy: true, maximumAge: 0 }
+      );
+    } else {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+      statusEl.textContent = 'Suivi arrêté.';
+    }
+  });
+</script>
+</body>
+</html>
